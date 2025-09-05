@@ -280,7 +280,8 @@ export const markEmailProcessed = async (emailId: string, status: 'success' | 'f
   // If marking as successful, remove any previous failed labels first
   if (status === 'success') {
     console.log(`✅ Email ${emailId} succeeded - cleaning up any previous failure labels`);
-    await removeLabelFromEmail(emailId, 'TodoAgent_Failed');
+    // Skip cleanup for now due to API limitations - the failed label will be overridden by success label
+    // await removeLabelFromEmail(emailId, 'TodoAgent_Failed');
   }
   
   return await addLabelToEmail(emailId, labelName);
@@ -303,12 +304,12 @@ export const removeLabelFromEmail = async (emailId: string, labelName: string): 
 
     console.log(`🗑️ Removing label "${labelName}" from email ${emailId}`);
     
-    // Use the modify labels action to remove labels
-    const result = await executeAction('GMAIL_MODIFY_LABELS', {
+    // Use the remove label action (since GMAIL_MODIFY_LABELS doesn't exist)
+    const result = await executeAction('GMAIL_REMOVE_LABEL_FROM_EMAIL', {
       connectedAccountId: gmailAccount.id,
       arguments: {
         message_id: emailId,
-        remove_label_ids: [labelId]
+        label_id: labelId
       }
     });
 

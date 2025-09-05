@@ -172,17 +172,39 @@ const loadDefaultRules = (): void => {
       }
     },
 
-    // Skip Rules (Newsletters, Automated)
+    // Skip Rules (Newsletters, Automated) - HIGH PRIORITY to catch before other rules
     {
       id: 'newsletters-skip',
       name: 'Newsletter and Marketing',
-      description: 'Skip automated marketing emails',
-      priority: 9,
+      description: 'Skip automated marketing emails and newsletters',
+      priority: 10, // Higher than meeting rules
       active: true,
       criteria: {
-        from: ['noreply@', 'no-reply@', 'marketing@', 'newsletter@'],
-        bodyKeywords: ['unsubscribe', 'marketing', 'promotional', 'advertisement'],
-        subject: ['newsletter', 'promotion', 'sale', 'offer']
+        from: ['noreply@', 'no-reply@', 'marketing@', 'newsletter@', 'notifications@'],
+        bodyKeywords: ['unsubscribe', 'marketing', 'promotional', 'advertisement', 'daily digest', 'weekly digest'],
+        subject: ['newsletter', 'promotion', 'sale', 'offer', 'digest', 'tips', 'update']
+      },
+      actions: {
+        label: 'TodoAgent_Skip',
+        skipAI: true,
+      },
+      stats: {
+        matched: 0,
+        created: new Date()
+      }
+    },
+
+    {
+      id: 'productivity-app-notifications',
+      name: 'Productivity App Notifications',
+      description: 'Skip notifications from productivity and task management apps',
+      priority: 10, // High priority
+      active: true,
+      criteria: {
+        fromDomain: ['todoist.com', 'notion.so', 'slack.com', 'asana.com', 'trello.com', 'monday.com'],
+        from: ['no-reply@todoist.com', 'noreply@todoist.com'],
+        bodyKeywords: ['daily digest', 'weekly digest', 'task summary', 'productivity tip', 'your tasks for', 'unsubscribe'],
+        subject: ['digest', 'summary', 'tip', 'reminder', 'your tasks', 'daily', 'weekly']
       },
       actions: {
         label: 'TodoAgent_Skip',
@@ -198,7 +220,7 @@ const loadDefaultRules = (): void => {
       id: 'automated-notifications',
       name: 'Automated System Notifications',
       description: 'Skip system notifications and automated emails',
-      priority: 8,
+      priority: 9, // Lower than productivity apps
       active: true,
       criteria: {
         from: ['notifications@', 'alerts@', 'system@', 'support@'],
@@ -218,7 +240,7 @@ const loadDefaultRules = (): void => {
       id: 'security-login-notifications',
       name: 'Security and Login Notifications',
       description: 'Skip login alerts, security notifications, and account notifications',
-      priority: 9,
+      priority: 10, // High priority to catch before other rules
       active: true,
       criteria: {
         subject: ['new login', 'login detected', 'sign in', 'security alert', 'password changed', 'account access'],
