@@ -60,6 +60,19 @@ export const initializeApp = async (): Promise<{success: boolean, error?: string
     log.info('📡 Initializing Composio client...');
     await initializeComposio(composioApiKey);
 
+    // Try to initialize AI service if OpenAI key is available
+    if (process.env.OPENAI_API_KEY) {
+      const { initializeAI } = await import('./services/ai-service');
+      const aiResult = await initializeAI();
+      if (aiResult.success) {
+        log.info('✅ AI service initialized and ready');
+      } else {
+        log.warn(`⚠️ AI service unavailable: ${aiResult.error} - will use basic classification`);
+      }
+    } else {
+      log.info('ℹ️ No OpenAI API key - AI features disabled');
+    }
+
     appState.initialized = true;
     log.info('✅ App initialization complete');
     return { success: true };

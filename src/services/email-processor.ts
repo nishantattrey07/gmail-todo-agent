@@ -2,7 +2,7 @@
 import { EmailData, ProcessingResult } from '../core/types';
 import { getEmails, getEmailById, addLabelToEmail, hasLabel, EmailQuery, markEmailProcessed } from './gmail';
 import { createTaskFromEmail } from './todoist';
-import { classifyEmail, initializeAI } from './ai-service';
+import { classifyEmail, isAIAvailable } from './ai-service';
 import { processEmailWithRules, initializeRuleEngine } from './rule-engine';
 
 // Enhanced processing stats (matching original)
@@ -215,12 +215,9 @@ export const processEmails = async (queryParams: EmailQuery = {}): Promise<Proce
 // Process email that already has action labels (matching original processLabeledEmail)
 const processLabeledEmail = async (
   email: EmailData, 
-  context: ProcessingContext
+  _context: ProcessingContext
 ): Promise<ProcessingResult> => {
   try {
-    // Extract task data from labeled email (matching original)
-    const taskData = extractTaskDataFromLabeledEmail(email);
-    
     // Create Todoist task
     const taskResult = await createTaskFromEmail(email);
     
@@ -264,16 +261,13 @@ const processWithAI = async (
   processingStats.aiProcessed++;
   
   try {
-    // Check if AI is available
-    if (!process.env.OPENAI_API_KEY) {
-      console.log(`⚠️ No OpenAI API key - falling back to basic classification for ${email.id}`);
+    // Check capability instead of initializing
+    if (!isAIAvailable()) {
+      console.log(`⚠️ AI not available - falling back to basic classification for ${email.id}`);
       return await processWithBasicClassification(email);
     }
 
-    // Initialize AI service if needed
-    await initializeAI();
-    
-    // Classify email with AI
+    // AI is ready, proceed with classification
     const aiResult = await classifyEmail(email);
     
     console.log(`🤖 AI classification for ${email.id}: ${aiResult.isActionable ? 'actionable' : 'not actionable'} (confidence: ${aiResult.confidence})`);
@@ -373,44 +367,6 @@ const processWithBasicClassification = async (email: EmailData): Promise<Process
   }
 };
 
-// Extract task data from emails that already have action labels (matching original)
-const extractTaskDataFromLabeledEmail = (email: EmailData): {
-  title: string;
-  description: string;
-  dueString?: string;
-  priority: 1 | 2 | 3 | 4;
-  category: string;
-} => {
-  const senderName = email.from.split('<')[0].trim() || email.from;
-  const cleanSubject = email.subject.replace(/^(re:|fwd?:)\s*/i, '').trim();
-  
-  // Determine priority and category based on labels
-  let priority: 1 | 2 | 3 | 4 = 2;
-  let category = 'task';
-  
-  if (hasLabel(email, 'TodoAgent_Important')) {
-    priority = 4;
-    category = 'urgent';
-  } else if (hasLabel(email, 'TodoAgent_Urgent')) {
-    priority = 4;
-    category = 'urgent';
-  } else if (hasLabel(email, 'TodoAgent_Meeting')) {
-    priority = 3;
-    category = 'meeting';
-  } else if (hasLabel(email, 'TodoAgent_Task')) {
-    priority = 2;
-    category = 'task';
-  }
-  
-  return {
-    title: cleanSubject.length > 0 
-      ? `${cleanSubject} (from ${senderName})`
-      : `Email from ${senderName}`,
-    description: `${email.snippet}\n\nFrom: ${email.from}\nReceived: ${email.timestamp}`,
-    priority,
-    category
-  };
-};
 
 // Helper function: check if email has processed label (using proper hasLabel function)
 const hasProcessedLabel = (email: EmailData): boolean => {

@@ -39,15 +39,17 @@ let openaiApiKey = '';
 let modelName = 'gpt-4o-mini';
 
 // Initialize AI service
-export const initializeAI = async (apiKey?: string, model?: string): Promise<void> => {
-  if (isInitialized) return;
+export const initializeAI = async (apiKey?: string, model?: string): Promise<{success: boolean, error?: string}> => {
+  if (isInitialized) {
+    return { success: true }; // Already initialized
+  }
 
   try {
     openaiApiKey = apiKey || process.env.OPENAI_API_KEY || '';
     if (model) modelName = model;
     
     if (!openaiApiKey) {
-      throw new Error('OpenAI API key is required');
+      return { success: false, error: 'No OpenAI API key provided' };
     }
 
     // Test connection by making a simple API call
@@ -59,21 +61,27 @@ export const initializeAI = async (apiKey?: string, model?: string): Promise<voi
     });
 
     if (!testResponse.ok) {
-      throw new Error(`OpenAI API test failed: ${testResponse.statusText}`);
+      return { success: false, error: `OpenAI API test failed: ${testResponse.statusText}` };
     }
 
     isInitialized = true;
     console.log(`✅ AI Service initialized with model: ${modelName}`);
+    return { success: true };
   } catch (error) {
     console.error('❌ Failed to initialize AI Service:', error);
-    throw new Error(`AI initialization failed: ${error}`);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
+};
+
+// Check if AI service is available and ready
+export const isAIAvailable = (): boolean => {
+  return isInitialized;
 };
 
 // Main classification function (matching original classifyEmail)
 export const classifyEmail = async (email: EmailData): Promise<AIClassificationResult> => {
   if (!isInitialized) {
-    await initializeAI();
+    throw new Error('AI service not initialized. Call initializeAI() first.');
   }
 
   try {
