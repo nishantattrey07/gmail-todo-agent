@@ -34,13 +34,23 @@ export const createGmailTrigger = async (webhookUrl: string): Promise<{success: 
   }
 };
 
-// List active triggers (simplified for now - trigger listing is complex in new SDK)
+// List active triggers using the composio SDK
 export const listActiveTriggers = async (): Promise<Array<{id: string, slug: string, status: string}>> => {
   try {
-    // For now, return empty array since trigger listing is mainly for monitoring
-    // The actual trigger functionality works through the create/delete functions
-    console.log('📋 Trigger listing not implemented in current SDK version');
-    return [];
+    const composio = await getComposio();
+    
+    // Use the triggers.listActive() method from the SDK
+    const triggersResponse = await composio.triggers.listActive();
+    const triggers = triggersResponse.items || [];
+    
+    console.log(` Found ${triggers.length} active triggers`);
+    
+    // Transform the response to match our expected format
+    return triggers.map((trigger: any) => ({
+      id: trigger.id || trigger.uuid || 'unknown',
+      slug: trigger.triggerName || 'unknown',
+      status: trigger.disabledAt ? 'disabled' : 'active'
+    }));
 
   } catch (error) {
     console.error('❌ Failed to list triggers:', error);
@@ -51,7 +61,7 @@ export const listActiveTriggers = async (): Promise<Array<{id: string, slug: str
 // Delete trigger (using Composio SDK instead of direct API calls)
 export const deleteTrigger = async (triggerId: string): Promise<boolean> => {
   try {
-    const composio = getComposio();
+    const composio = await getComposio();
     
     // Use SDK method instead of direct API call
     await composio.triggers.delete(triggerId);
